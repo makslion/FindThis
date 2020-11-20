@@ -10,8 +10,15 @@
     <ImageView
         android:id="@+id/capturedImage"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginLeft="50dp"
-        android:layout_marginRight="50dp"
+        android:layout_height="496dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
         tools:srcCompat="@tools:sample/avatars" />
+
+    <Button
+        android:id="@+id/doTheMagicButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="magicButtonListener"
+        android:text="Do the magic" />
 </LinearLayout>

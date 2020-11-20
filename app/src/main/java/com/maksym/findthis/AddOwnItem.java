@@ -1,7 +1,6 @@
 package com.maksym.findthis;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
@@ -10,16 +9,22 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.maksym.findthis.OpenCVmagic.DetectionMagic;
+
 public class AddOwnItem extends AppCompatActivity {
     private final String TAG = getClass().getSimpleName();
-    ImageView capturedImage;
+    ImageView imageView;
+    Bitmap rawImage, processedImage;
     private static final int CAMERA_REQUEST = 1;
     private static final int MY_CAMERA_PERMISSION_CODE = 100;
+
+    DetectionMagic detectionMagic;
 
 
 
@@ -34,7 +39,10 @@ public class AddOwnItem extends AppCompatActivity {
 
 
     private void findReferences(){
-        capturedImage = findViewById(R.id.capturedImage);
+        imageView = findViewById(R.id.capturedImage);
+
+
+        detectionMagic = new DetectionMagic();
     }
 
 
@@ -91,8 +99,24 @@ public class AddOwnItem extends AppCompatActivity {
         Log.d(TAG, "\t result code "+resultCode);
         if (requestCode == 1 && resultCode == RESULT_OK) {
             Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            capturedImage.setImageBitmap(imageBitmap);
+            rawImage = (Bitmap) extras.get("data");
+
+            imageView.setImageBitmap(rawImage);
+
+            processedImage = detectionMagic.sift(rawImage);
+        }
+    }
+
+
+
+    public void magicButtonListener(View view){
+        if (rawImage != null) {
+
+            Log.d("THE_THING","Received, setting!");
+
+            //imageView.setImageBitmap(rawImage);
+            takePhoto();
+
         }
     }
 }

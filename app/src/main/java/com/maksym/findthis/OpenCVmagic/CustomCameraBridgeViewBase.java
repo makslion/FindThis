@@ -3,7 +3,6 @@ package com.maksym.findthis.OpenCVmagic;
 
 import java.util.List;
 
-import org.opencv.BuildConfig;
 import org.opencv.R;
 import org.opencv.android.FpsMeter;
 import org.opencv.android.Utils;

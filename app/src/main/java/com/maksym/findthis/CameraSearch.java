@@ -2,6 +2,7 @@ package com.maksym.findthis;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,6 +19,7 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.maksym.findthis.OpenCVmagic.CustomCameraBridgeViewBase;
+import com.maksym.findthis.OpenCVmagic.DetectionMagic;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -52,6 +54,8 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
     private String TAG = "fuckincg_fuck_fuck";
     private final int CAMERA_PERMISSION_CODE = 100;
     private CustomCameraBridgeViewBase mOpenCvCameraView;
+
+    private DetectionMagic detectionMagic = new DetectionMagic();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -130,6 +134,7 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
     @Override
     public Mat onCameraFrame(Mat inputFrame) {
         //Log.d(TAG,"on camera frame");
+
         return inputFrame;
     }
 }
