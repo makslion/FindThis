@@ -11,20 +11,28 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.maksym.findthis.OpenCVmagic.DetectionEngine;
 import com.maksym.findthis.OpenCVmagic.DetectionMagic;
+import com.maksym.findthis.Utils.Constants;
 
 public class AddOwnItem extends AppCompatActivity {
-    private final String TAG = getClass().getSimpleName();
-    ImageView imageView;
-    Bitmap rawImage, processedImage;
+    private String TAG = getClass().getSimpleName();
+
+    private ImageView imageView;
+    private Bitmap rawImage, processedImage;
+    private Spinner detectorsSpinner;
     private static final int CAMERA_REQUEST = 1;
     private static final int MY_CAMERA_PERMISSION_CODE = 100;
 
-    DetectionMagic detectionMagic;
+    private DetectionMagic detectionMagic;
+    private DetectionEngine detectionEngine;
 
 
 
@@ -40,9 +48,66 @@ public class AddOwnItem extends AppCompatActivity {
 
     private void findReferences(){
         imageView = findViewById(R.id.capturedImage);
-
+        detectorsSpinner = findViewById(R.id.detectorsSpinner);
 
         detectionMagic = new DetectionMagic();
+        detectionEngine = DetectionEngine.getInstance();
+
+        populateSpinner();
+    }
+
+
+    private void populateSpinner(){
+        ArrayAdapter arrayAdapter = new ArrayAdapter(this,android.R.layout.simple_spinner_item, Constants.BIG_DETECTORS);
+        arrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        detectorsSpinner.setAdapter(arrayAdapter);
+        detectorsSpinner.setSelection(4);//////////////////////////////////////////////////////////////////////////////////// TODO set default detector
+
+        detectorsSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                switch (i){
+                    case 0:
+                        displayKeypoints(Constants.AKAZE_DETECTOR_ID);
+                        break;
+                    case 1:
+                        displayKeypoints(Constants.BRISK_DETECTOR_ID);
+                        break;
+                    case 2:
+                        displayKeypoints(Constants.MSER_DETECTOR_ID);
+                        break;
+                    case 3:
+                        displayKeypoints(Constants.ORB_DETECTOR_ID);
+                        break;
+                    case 4:
+                        displayKeypoints(Constants.SIFT_DETECTOR_ID);
+                        break;
+                    default:
+                        displayKeypoints(Constants.SIFT_DETECTOR_ID);/////////////////////////////////////////////////////// TODO set default detector
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+    }
+
+
+
+    private void displayKeypoints(int detectorID){
+        if (rawImage != null) {
+            imageView.setImageBitmap(null);
+            Log.d(TAG, "displaying keypoints with detector id "+detectorID);
+            processedImage = rawImage.copy(rawImage.getConfig(), true);
+
+            detectionEngine.drawKeypoints(detectorID, processedImage);
+            imageView.setImageBitmap(processedImage);
+
+        }
+        else
+            Log.d(TAG, "raw image is null");
     }
 
 
@@ -99,24 +164,39 @@ public class AddOwnItem extends AppCompatActivity {
         Log.d(TAG, "\t result code "+resultCode);
         if (requestCode == 1 && resultCode == RESULT_OK) {
             Bundle extras = data.getExtras();
+
             rawImage = (Bitmap) extras.get("data");
 
             imageView.setImageBitmap(rawImage);
+            displayKeypoints(Constants.SIFT_DETECTOR_ID);/////////////////////////////////////////////////////////////////////// TODO use default detector
 
-            processedImage = detectionMagic.sift(rawImage);
         }
+    }
+
+
+
+    public void retakeButtonListener(View view){
+
+
+        Log.d(TAG,"Received, setting!");
+
+        //imageView.setImageBitmap(rawImage);
+        takePhoto();
+
+
+    }
+
+
+    public void cropButtonListener(View view){
+
+    }
+
+
+    public void nextButtonListener(View view){
+        Intent intent = new Intent(this, EditOwnItem.class);
+        startActivity(intent);
     }
 
 
 
-    public void magicButtonListener(View view){
-        if (rawImage != null) {
-
-            Log.d("THE_THING","Received, setting!");
-
-            //imageView.setImageBitmap(rawImage);
-            takePhoto();
-
-        }
-    }
 }

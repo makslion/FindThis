@@ -7,10 +7,10 @@
 
 
     <com.maksym.findthis.OpenCVmagic.CustomJavaCameraView
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:visibility="gone"
         android:id="@+id/HelloOpenCvView"
-        opencv:show_fps="true"
-        opencv:camera_id="any" />
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        opencv:camera_id="any"
+        opencv:show_fps="true" />
 </LinearLayout>

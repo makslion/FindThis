@@ -19,7 +19,9 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.maksym.findthis.OpenCVmagic.CustomCameraBridgeViewBase;
+import com.maksym.findthis.OpenCVmagic.DetectionEngine;
 import com.maksym.findthis.OpenCVmagic.DetectionMagic;
+import com.maksym.findthis.Utils.Constants;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -134,7 +136,8 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
     @Override
     public Mat onCameraFrame(Mat inputFrame) {
         //Log.d(TAG,"on camera frame");
-
+        //DetectionEngine.getInstance().drawKeypoints(Constants.FAST_DETECTOR_ID, inputFrame);
+        //DetectionEngine.getInstance().drawKeypoints(Constants.BRISK_DETECTOR_ID, inputFrame);
         return inputFrame;
     }
 }
