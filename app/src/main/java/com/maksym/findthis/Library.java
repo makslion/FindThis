@@ -1,25 +1,42 @@
 package com.maksym.findthis;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 
+import com.maksym.findthis.Components.ObjectsRecyclerAdapter;
+import com.maksym.findthis.Database.ObjectViewModel;
+
 public class Library extends AppCompatActivity {
-    private Button cameraTest, addOwn;
+    private ObjectViewModel objectViewModel;
+    private RecyclerView recyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_library);
 
-        cameraTest = findViewById(R.id.cameraTest);
+        initializeVariables();
+    }
 
-        addOwn = findViewById(R.id.addOwnItemButton);
+    private void initializeVariables(){
+        objectViewModel = new ViewModelProvider(this).get(ObjectViewModel.class);
 
+        recyclerView = findViewById(R.id.collectionRecycler);
+        ObjectsRecyclerAdapter adapter = new ObjectsRecyclerAdapter(this);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
 
+        objectViewModel.getAllObjects().observe(this, objectEntities -> {
+            // Update the cached copy of the objects in the adapter.
+            adapter.setObjects(objectEntities);
+        });
     }
 
 

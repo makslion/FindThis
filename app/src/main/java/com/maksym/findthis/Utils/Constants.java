@@ -23,4 +23,16 @@ public class Constants {
     public static final String [] SMALL_DETECTORS = {"FAST","GFTT"};
 
 
+    public static final String DATA_DIR_NAME = "Objects/";
+
+
+    public static final String EXTRA_OBJECT = "object here";
+    public static final String EXTRA_BITMAP = "image here";
+    public static final String EXTRA_DETECTOR = "detector array id here";
+
+
+    public static final float RATIO_THRESHOLD = 0.75f;
+    public static final double MATCHED_FEATURES_THRESHOLD = 0.5;
+
+
 }

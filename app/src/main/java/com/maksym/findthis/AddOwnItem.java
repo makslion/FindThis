@@ -80,8 +80,6 @@ public class AddOwnItem extends AppCompatActivity {
                         displayKeypoints(Constants.ORB_DETECTOR_ID);
                         break;
                     case 4:
-                        displayKeypoints(Constants.SIFT_DETECTOR_ID);
-                        break;
                     default:
                         displayKeypoints(Constants.SIFT_DETECTOR_ID);/////////////////////////////////////////////////////// TODO set default detector
                 }
@@ -167,6 +165,7 @@ public class AddOwnItem extends AppCompatActivity {
 
             rawImage = (Bitmap) extras.get("data");
 
+            Log.d(TAG, "captured image dimensions: "+rawImage.getWidth()+"*"+rawImage.getHeight());
             imageView.setImageBitmap(rawImage);
             displayKeypoints(Constants.SIFT_DETECTOR_ID);/////////////////////////////////////////////////////////////////////// TODO use default detector
 
@@ -194,6 +193,8 @@ public class AddOwnItem extends AppCompatActivity {
 
     public void nextButtonListener(View view){
         Intent intent = new Intent(this, EditOwnItem.class);
+        intent.putExtra(Constants.EXTRA_BITMAP, rawImage);
+        intent.putExtra(Constants.EXTRA_DETECTOR, detectorsSpinner.getSelectedItemPosition());
         startActivity(intent);
     }
 

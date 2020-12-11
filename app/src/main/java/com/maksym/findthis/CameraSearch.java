@@ -18,6 +18,8 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import com.maksym.findthis.Components.MatchObjectsCallback;
+import com.maksym.findthis.Database.ObjectEntity;
 import com.maksym.findthis.OpenCVmagic.CustomCameraBridgeViewBase;
 import com.maksym.findthis.OpenCVmagic.DetectionEngine;
 import com.maksym.findthis.OpenCVmagic.DetectionMagic;
@@ -27,10 +29,11 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 
-public class CameraSearch extends AppCompatActivity implements CustomCameraBridgeViewBase.CvCameraViewListener {
+public class CameraSearch extends AppCompatActivity implements CustomCameraBridgeViewBase.CvCameraViewListener, MatchObjectsCallback {
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 
@@ -53,11 +56,15 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
         }
     };
 
-    private String TAG = "fuckincg_fuck_fuck";
+    private String TAG = "fucking_fuck_fuck";
     private final int CAMERA_PERMISSION_CODE = 100;
     private CustomCameraBridgeViewBase mOpenCvCameraView;
 
     private DetectionMagic detectionMagic = new DetectionMagic();
+
+    private ObjectEntity objectEntity;
+    private Bitmap objectPhoto;
+    private boolean detectorOperating, objectReceived = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -80,6 +87,8 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
 
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
+
+        initializeVariables();
     }
 
     @Override
@@ -136,8 +145,45 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
     @Override
     public Mat onCameraFrame(Mat inputFrame) {
         //Log.d(TAG,"on camera frame");
-        //DetectionEngine.getInstance().drawKeypoints(Constants.FAST_DETECTOR_ID, inputFrame);
+        // DetectionEngine.getInstance().drawKeypoints(Constants.FAST_DETECTOR_ID, inputFrame);
         //DetectionEngine.getInstance().drawKeypoints(Constants.BRISK_DETECTOR_ID, inputFrame);
+        // DetectionEngine.getInstance().drawKeypoints(Constants.SIFT_DETECTOR_ID, inputFrame);
+        // DetectionEngine.getInstance().drawKeypoints(Constants.AKAZE_DETECTOR_ID, inputFrame);
+        // DetectionEngine.getInstance().drawKeypoints(Constants.GFTT_DETECTOR_ID, inputFrame);
+        if (!detectorOperating){
+            detectorOperating = true;
+            Mat objectMat = new Mat();
+            DetectionEngine detectionEngine = DetectionEngine.getInstance();
+
+            Utils.bitmapToMat(objectPhoto, objectMat);
+//            detectionEngine.matchObjects(objectMat, inputFrame, detectionEngine.selectDetector(objectEntity.getDetectorType()), this);
+            detectionEngine.matchObjectsThread(objectMat, inputFrame, detectionEngine.selectDetector(objectEntity.getDetectorType()), this);
+        }
         return inputFrame;
+    }
+
+
+
+    private void initializeVariables(){
+        Intent intent = getIntent();
+
+        if (intent.hasExtra(Constants.EXTRA_BITMAP) && intent.hasExtra(Constants.EXTRA_OBJECT)){
+            Log.d(TAG, "retrieving object details");
+            objectEntity = (ObjectEntity) intent.getSerializableExtra(Constants.EXTRA_OBJECT);
+            objectPhoto = intent.getParcelableExtra(Constants.EXTRA_BITMAP);
+        }
+
+    }
+
+    @Override
+    public void matchObjectsCallback(Mat homography, boolean found) {
+        if (found) {
+            Log.d(TAG, "match found!");
+            Log.d(TAG, "Homography from callback: " + homography.toString());
+        }
+        else {
+            Log.d(TAG, "No match!");
+        }
+        detectorOperating = false;
     }
 }

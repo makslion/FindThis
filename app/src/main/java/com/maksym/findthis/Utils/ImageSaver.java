@@ -14,14 +14,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class ImageSaver {
+    private String TAG = getClass().getSimpleName();
 
-    private String directoryName = "images";
-    private String fileName = "image.png";
+    private String rootDirectory = Constants.DATA_DIR_NAME;
+    private String directoryName = "ObjectsImages"; ///////////////////////////////// TODO default parameters to constants
+    private String fileName = "testImage.png";
     private Context context;
     private boolean external;
 
     public ImageSaver(Context context) {
         this.context = context;
+
+
     }
 
     public ImageSaver setFileName(String fileName) {
@@ -106,5 +110,14 @@ public class ImageSaver {
             }
         }
         return null;
+    }
+
+
+    public boolean deleteFile(){
+        File file =  new File(context.getDir(directoryName, Context.MODE_PRIVATE), fileName);
+        Log.d(TAG, "attempt to delete from directory "+directoryName+" file "+fileName);
+        Log.d(TAG, "file exists: "+file.exists());
+        Log.d(TAG, "getAlbumStorageDir: "+context.getDir(directoryName, Context.MODE_PRIVATE));
+        return file.delete();
     }
 }

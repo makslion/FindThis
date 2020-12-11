@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".Library" >
+    android:padding="5dp"
+    tools:context=".Library">
 
     <Button
         android:id="@+id/cameraTest"
@@ -13,13 +14,28 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="50px"
         android:onClick="cameraTest"
-        android:text="Camera Test" />
+        android:text="Camera Test"
+        android:textAllCaps="false" />
 
     <Button
         android:id="@+id/addOwnItemButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:onClick="addOwnItem"
-        android:text="add own item" />
+        android:text="add own item"
+        android:textAllCaps="false" />
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Collection:"
+        android:textSize="30sp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/collectionRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </LinearLayout>
