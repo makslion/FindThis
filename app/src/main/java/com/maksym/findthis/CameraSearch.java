@@ -32,6 +32,7 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.Rect;
 
 public class CameraSearch extends AppCompatActivity implements CustomCameraBridgeViewBase.CvCameraViewListener, MatchObjectsCallback {
 
@@ -65,6 +66,8 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
     private ObjectEntity objectEntity;
     private Bitmap objectPhoto;
     private boolean detectorOperating, objectReceived = false;
+    private Mat inputFrameWithObject;
+    private DetectionEngine detectionEngine = DetectionEngine.getInstance();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -145,19 +148,40 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
     @Override
     public Mat onCameraFrame(Mat inputFrame) {
         //Log.d(TAG,"on camera frame");
-        // DetectionEngine.getInstance().drawKeypoints(Constants.FAST_DETECTOR_ID, inputFrame);
-        //DetectionEngine.getInstance().drawKeypoints(Constants.BRISK_DETECTOR_ID, inputFrame);
-        // DetectionEngine.getInstance().drawKeypoints(Constants.SIFT_DETECTOR_ID, inputFrame);
-        // DetectionEngine.getInstance().drawKeypoints(Constants.AKAZE_DETECTOR_ID, inputFrame);
-        // DetectionEngine.getInstance().drawKeypoints(Constants.GFTT_DETECTOR_ID, inputFrame);
+//        DetectionEngine.getInstance().drawKeypoints(Constants.AKAZE_DETECTOR_ID, inputFrame);
+//        DetectionEngine.getInstance().drawKeypoints(Constants.BRISK_DETECTOR_ID, inputFrame);
+//        DetectionEngine.getInstance().drawKeypoints(Constants.FAST_DETECTOR_ID, inputFrame);
+//        DetectionEngine.getInstance().drawKeypoints(Constants.GFTT_DETECTOR_ID, inputFrame);
+//        DetectionEngine.getInstance().drawKeypoints(Constants.KAZE_DETECTOR_ID, inputFrame);
+//        DetectionEngine.getInstance().drawKeypoints(Constants.MSER_DETECTOR_ID, inputFrame);
+//        DetectionEngine.getInstance().drawKeypoints(Constants.ORB_DETECTOR_ID, inputFrame);
+//        DetectionEngine.getInstance().drawKeypoints(Constants.SIFT_DETECTOR_ID, inputFrame);
+
+        long start = System.nanoTime();
         if (!detectorOperating){
             detectorOperating = true;
             Mat objectMat = new Mat();
-            DetectionEngine detectionEngine = DetectionEngine.getInstance();
-
             Utils.bitmapToMat(objectPhoto, objectMat);
-//            detectionEngine.matchObjects(objectMat, inputFrame, detectionEngine.selectDetector(objectEntity.getDetectorType()), this);
             detectionEngine.matchObjectsThread(objectMat, inputFrame, detectionEngine.selectDetector(objectEntity.getDetectorType()), this);
+        }
+        if (objectReceived) {
+
+            detectionEngine.matchObjects(inputFrameWithObject, inputFrame, detectionEngine.selectTracker(Constants.ORB_DETECTOR_ID));
+
+        }
+
+//        Mat objectMat = new Mat();
+//        Utils.bitmapToMat(objectPhoto, objectMat);
+//        Utils.bitmapToMat(objectPhoto, objectMat);
+//        detectionEngine.matchObjects(objectMat, inputFrame, detectionEngine.selectDetector(objectEntity.getDetectorType()));
+
+        long end = System.nanoTime();
+        double frameDelivered = (double) (end - start)/1000000000;
+        double framesPerSecond = 1/frameDelivered;
+
+        if (framesPerSecond < 200) {
+            Log.d("FPS", "Frame in: " + frameDelivered);
+            Log.d("FPS", "Frames per second: " + framesPerSecond);
         }
         return inputFrame;
     }
@@ -176,13 +200,51 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
     }
 
     @Override
-    public void matchObjectsCallback(Mat homography, boolean found) {
+    public void matchObjectsCallback(float [] sceneCornersData, Mat frame, boolean found) {
         if (found) {
             Log.d(TAG, "match found!");
-            Log.d(TAG, "Homography from callback: " + homography.toString());
+
+            int rightTopX = Math.round(sceneCornersData[2]);
+            int rightTopY = Math.round(sceneCornersData[3]);
+            int letBotX =  Math.round(sceneCornersData[6]);
+            int letBotY =  Math.round(sceneCornersData[7]);
+
+            //if out of frame set to 0
+            if (rightTopX < 0)
+                rightTopX = 0;
+            if (rightTopY < 0)
+                rightTopY = 0;
+            if (letBotX < 0)
+                letBotX = 0;
+            if (letBotY < 0)
+                letBotY = 0;
+
+            int width = letBotX - rightTopX;
+            int height = letBotY - rightTopY;
+
+            // check if trying to crop out of bounds
+            if (width + rightTopX > frame.cols())
+                width = frame.cols()-rightTopX;
+            if (height + rightTopY > frame.rows() - rightTopY)
+                height = frame.rows()-rightTopY;
+
+            Log.d(TAG, "Frame dimensions: "+frame.cols()+"*"+frame.rows());
+            Log.d(TAG, "r t x: "+rightTopX);
+            Log.d(TAG, "r t y: "+rightTopY);
+            Log.d(TAG, "l b x: "+letBotX);
+            Log.d(TAG, "l b y: "+letBotY);
+            Log.d(TAG, "width: "+width);
+            Log.d(TAG, "height: "+height);
+
+
+            Rect roi = new Rect(rightTopX, rightTopY, width, height);
+            inputFrameWithObject = new Mat(frame, roi);
+
+            objectReceived = true;
         }
         else {
             Log.d(TAG, "No match!");
+            objectReceived = false;
         }
         detectorOperating = false;
     }

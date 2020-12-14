@@ -9,13 +9,17 @@ import com.maksym.findthis.Utils.Constants;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.calib3d.Calib3d;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Scalar;
 import org.opencv.features2d.AKAZE;
 import org.opencv.features2d.BRISK;
 import org.opencv.features2d.DescriptorMatcher;
@@ -129,6 +133,19 @@ public class DetectionEngine extends Thread {
             return SIFT.create();///////////////////// TODO default detector
     }
 
+    // {"FAST","GFTT"};
+    public Feature2D selectTracker(int trackerId){
+        switch (trackerId){
+            case Constants.GFTT_DETECTOR_ID:
+                return GFTTDetector.create();
+            case Constants.FAST_DETECTOR_ID:
+                return FastFeatureDetector.create();
+            case Constants.ORB_DETECTOR_ID:
+            default:
+                return ORB.create();
+        }
+    }
+
 
 
     private MatOfKeyPoint doDetection(Feature2D detector, Mat inputImage){
@@ -142,7 +159,7 @@ public class DetectionEngine extends Thread {
 
 
 
-    public void matchObjects(Mat object, Mat objectInScene, Feature2D detector, MatchObjectsCallback callback){
+    public void matchObjects(Mat object, Mat objectInScene, Feature2D detector){
         Log.d(TAG, "trying to match...");
 
         //-- Step 1: Detect the keypoints using detector, compute the descriptors
@@ -158,7 +175,7 @@ public class DetectionEngine extends Thread {
 
         //-- Step 2: Matching descriptor vectors with a FLANN based matcher
         // Since SURF is a floating-point descriptor NORM_L2 is used
-        DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.FLANNBASED);
+        DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
         List<MatOfDMatch> knnMatches = new ArrayList<>();
 
         matcher.knnMatch(descriptorsObject, descriptorsScene, knnMatches, 2);
@@ -175,13 +192,14 @@ public class DetectionEngine extends Thread {
             }
         }
         double mathcesRatio = (double) listOfGoodMatches.size() / knnMatches.size();
+
         if (mathcesRatio > Constants.MATCHED_FEATURES_THRESHOLD) {
             MatOfDMatch goodMatches = new MatOfDMatch();
             goodMatches.fromList(listOfGoodMatches);
 
-//        //-- Draw matches
-//        Mat imgMatches = new Mat();
-//        Features2d.drawMatches(imgObject, keypointsObject, imgScene, keypointsScene, goodMatches, imgMatches, Scalar.all(-1),
+        //-- Draw matches
+        Mat imgMatches = objectInScene;
+//        Features2d.drawMatches(object, keypointsObject, objectInScene, keypointsScene, goodMatches, imgMatches, Scalar.all(-1),
 //                Scalar.all(-1), new MatOfByte(), Features2d.NOT_DRAW_SINGLE_POINTS);
 
             //-- Localize the object
@@ -201,14 +219,72 @@ public class DetectionEngine extends Thread {
             sceneMat.fromList(scene);
             double ransacReprojThreshold = 3.0;
             Mat H = Calib3d.findHomography(objMat, sceneMat, Calib3d.RANSAC, ransacReprojThreshold);
+//            Mat fundamental = Calib3d.findFundamentalMat(objMat, sceneMat,Calib3d.RANSAC, ransacReprojThreshold );
 
             Log.d(TAG, "Done calculations!");
             Log.d(TAG, "good matches size: " + goodMatches.toList().size());
 
-            callback.matchObjectsCallback(H, true);
-        }
-        else {
-            callback.matchObjectsCallback(null, false);
+
+
+            //-- Get the corners from the image_1 ( the object to be "detected" )
+            Mat objCorners = new Mat(4, 1, CvType.CV_32FC2), sceneCorners = new Mat();
+            float[] objCornersData = new float[(int) (objCorners.total() * objCorners.channels())];
+            objCorners.get(0, 0, objCornersData);
+            objCornersData[0] = 0;
+            objCornersData[1] = 0;
+            objCornersData[2] = object.cols();
+            objCornersData[3] = 0;
+            objCornersData[4] = object.cols();
+            objCornersData[5] = object.rows();
+            objCornersData[6] = 0;
+            objCornersData[7] = object.rows();
+            objCorners.put(0, 0, objCornersData);
+            Core.perspectiveTransform(objCorners, sceneCorners, H);
+            float[] sceneCornersData = new float[(int) (sceneCorners.total() * sceneCorners.channels())];
+            sceneCorners.get(0, 0, sceneCornersData);
+            //-- Draw lines between the corners (the mapped object in the scene - image_2 )
+            Imgproc.line(imgMatches, new Point(sceneCornersData[0], sceneCornersData[1]),
+                    new Point(sceneCornersData[2], sceneCornersData[3]), new Scalar(0, 255, 0), 4);
+            Imgproc.line(imgMatches, new Point(sceneCornersData[2], sceneCornersData[3]),
+                    new Point(sceneCornersData[4], sceneCornersData[5]), new Scalar(0, 255, 0), 4);
+            Imgproc.line(imgMatches, new Point(sceneCornersData[4], sceneCornersData[5]),
+                    new Point(sceneCornersData[6], sceneCornersData[7]), new Scalar(0, 255, 0), 4);
+            Imgproc.line(imgMatches, new Point(sceneCornersData[6], sceneCornersData[7]),
+                    new Point(sceneCornersData[0], sceneCornersData[1]), new Scalar(0, 255, 0), 4);
+
+
+
+//            testing
+//            Imgproc.line(imgMatches,
+//                    new Point(0,0),
+//                    new Point(sceneCornersData[6], sceneCornersData[7] ),
+//                    new Scalar(255, 255, 0), 4);
+
+//            sceneCornersData[0], sceneCornersData[1]                                 // left top x left top y
+//            sceneCornersData[2], sceneCornersData[3]                                 // right top x right top y
+//
+//            sceneCornersData[2], sceneCornersData[3]                                 //  r t x, r t y
+//            sceneCornersData[4], sceneCornersData[5]                                 //  r b x, r b y
+//
+//            sceneCornersData[4], sceneCornersData[5]                                  //  r b x, r b y
+//            sceneCornersData[6], sceneCornersData[7]                                  //  l b x, l b y
+//
+//            sceneCornersData[6], sceneCornersData[7]                                  //  l b x, l b y
+//            sceneCornersData[0], sceneCornersData[1]                                  // l t x, l t y
+
+//            Log.d(TAG, "drawing imgMatches");
+//
+            Log.d(TAG, "objects cols: "+object.cols()+" rows: "+object.rows());
+            Log.d(TAG, "scene cols: "+objectInScene.cols()+" rows: "+objectInScene.rows());
+            Log.d(TAG, "matches cols: "+imgMatches.cols()+" rows: "+imgMatches.rows());
+            Log.d(TAG, "scene corners data: "+sceneCornersData[0]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[1]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[2]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[3]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[4]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[5]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[6]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[7]);
         }
     }
 

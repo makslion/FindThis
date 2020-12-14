@@ -6,15 +6,21 @@ import com.maksym.findthis.Components.MatchObjectsCallback;
 import com.maksym.findthis.Utils.Constants;
 
 import org.opencv.calib3d.Calib3d;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Scalar;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.Feature2D;
+import org.opencv.features2d.Features2d;
+import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,7 +78,7 @@ public class MatchObjectThread extends Thread {
 
 //        //-- Draw matches
 //        Mat imgMatches = new Mat();
-//        Features2d.drawMatches(imgObject, keypointsObject, imgScene, keypointsScene, goodMatches, imgMatches, Scalar.all(-1),
+//        Features2d.drawMatches(object, keypointsObject, objectInScene, keypointsScene, goodMatches, imgMatches, Scalar.all(-1),
 //                Scalar.all(-1), new MatOfByte(), Features2d.NOT_DRAW_SINGLE_POINTS);
 
             //-- Localize the object
@@ -91,15 +97,51 @@ public class MatchObjectThread extends Thread {
             objMat.fromList(obj);
             sceneMat.fromList(scene);
             double ransacReprojThreshold = 3.0;
-            Mat H = Calib3d.findHomography(objMat, sceneMat, Calib3d.RANSAC, ransacReprojThreshold);
+            Mat H = Calib3d.findHomography(objMat, sceneMat, Calib3d.RANSAC, ransacReprojThreshold);////// TODO estimate fundamental matrix instead
+//            Mat fundamental = Calib3d.findFundamentalMat(objMat, sceneMat);
+
+            //-- Get the corners from the image_1 ( the object to be "detected" )
+            Mat objCorners = new Mat(4, 1, CvType.CV_32FC2), sceneCorners = new Mat();
+            float[] objCornersData = new float[(int) (objCorners.total() * objCorners.channels())];
+            objCorners.get(0, 0, objCornersData);
+            objCornersData[0] = 0;
+            objCornersData[1] = 0;
+            objCornersData[2] = object.cols();
+            objCornersData[3] = 0;
+            objCornersData[4] = object.cols();
+            objCornersData[5] = object.rows();
+            objCornersData[6] = 0;
+            objCornersData[7] = object.rows();
+            objCorners.put(0, 0, objCornersData);
+            Core.perspectiveTransform(objCorners, sceneCorners, H);
+            float[] sceneCornersData = new float[(int) (sceneCorners.total() * sceneCorners.channels())];
+            sceneCorners.get(0, 0, sceneCornersData);
+//            //-- Draw lines between the corners (the mapped object in the scene - image_2 )
+//            Imgproc.line(objectInScene, new Point(sceneCornersData[0] + object.cols(), sceneCornersData[1]),
+//                    new Point(sceneCornersData[2] + object.cols(), sceneCornersData[3]), new Scalar(0, 255, 0), 4);
+//            Imgproc.line(objectInScene, new Point(sceneCornersData[2] + object.cols(), sceneCornersData[3]),
+//                    new Point(sceneCornersData[4] + object.cols(), sceneCornersData[5]), new Scalar(0, 255, 0), 4);
+//            Imgproc.line(objectInScene, new Point(sceneCornersData[4] + object.cols(), sceneCornersData[5]),
+//                    new Point(sceneCornersData[6] + object.cols(), sceneCornersData[7]), new Scalar(0, 255, 0), 4);
+//            Imgproc.line(objectInScene, new Point(sceneCornersData[6] + object.cols(), sceneCornersData[7]),
+//                    new Point(sceneCornersData[0] + object.cols(), sceneCornersData[1]), new Scalar(0, 255, 0), 4);
+
 
             Log.d(TAG, "Done calculations!");
             Log.d(TAG, "good matches size: " + goodMatches.toList().size());
+            Log.d(TAG, "scene corners data: "+sceneCornersData[0]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[1]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[2]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[3]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[4]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[5]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[6]);
+            Log.d(TAG, "scene corners data: "+sceneCornersData[7]);
 
-            callback.matchObjectsCallback(H, true);
+            callback.matchObjectsCallback(sceneCornersData, objectInScene, true);
         }
         else {
-            callback.matchObjectsCallback(null, false);
+            callback.matchObjectsCallback(null, null, false);
         }
     }
 }

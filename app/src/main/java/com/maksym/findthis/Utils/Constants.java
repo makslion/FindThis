@@ -20,7 +20,7 @@ public class Constants {
     public static final int SIFT_DETECTOR_ID  = 8;   // scale rot affine (partially) invariant
 
     public static final String [] BIG_DETECTORS = {"AKAZE","BRISK","MSER","ORB","SIFT"};
-    public static final String [] SMALL_DETECTORS = {"FAST","GFTT"};
+    public static final String [] SMALL_DETECTORS = {"ORB","GFTT"};
 
 
     public static final String DATA_DIR_NAME = "Objects/";
@@ -32,7 +32,7 @@ public class Constants {
 
 
     public static final float RATIO_THRESHOLD = 0.75f;
-    public static final double MATCHED_FEATURES_THRESHOLD = 0.5;
+    public static final double MATCHED_FEATURES_THRESHOLD = 0.2;
 
 
 }
