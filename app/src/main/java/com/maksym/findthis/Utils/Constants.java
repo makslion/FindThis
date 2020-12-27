@@ -33,6 +33,7 @@ public class Constants {
 
     public static final float RATIO_THRESHOLD = 0.75f;
     public static final double MATCHED_FEATURES_THRESHOLD = 0.2;
+    public static final double MATCHED_FEATURES_TRACKING_THRESHOLD = 0.2;
 
 
 }

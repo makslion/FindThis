@@ -159,18 +159,24 @@ public class DetectionEngine extends Thread {
 
 
 
-    public void matchObjects(Mat object, Mat objectInScene, Feature2D detector){
+    public void matchObjects(Mat object, MatOfKeyPoint _keypointsObject, Mat _descriptorsObject, Mat objectInScene, /*Feature2D detector*/ Feature2D extractor, Feature2D descriptor){
         Log.d(TAG, "trying to match...");
+
 
         //-- Step 1: Detect the keypoints using detector, compute the descriptors
         MatOfKeyPoint keypointsObject = new MatOfKeyPoint();
         MatOfKeyPoint keypointsScene = new MatOfKeyPoint();
 
+        extractor.detect(objectInScene, keypointsScene);
+        extractor.detect(object, keypointsObject);
+
         Mat descriptorsObject = new Mat();
         Mat descriptorsScene = new Mat();
 
-        detector.detectAndCompute(object, new Mat(), keypointsObject, descriptorsObject);
-        detector.detectAndCompute(objectInScene, new Mat(), keypointsScene, descriptorsScene);
+        descriptor.compute(objectInScene, keypointsScene, descriptorsScene);
+        descriptor.compute(object, keypointsObject, descriptorsObject);
+//        detector.detectAndCompute(object, new Mat(), keypointsObject, descriptorsObject);
+//        detector.detectAndCompute(objectInScene, new Mat(), keypointsScene, descriptorsScene);
 
 
         //-- Step 2: Matching descriptor vectors with a FLANN based matcher
@@ -191,15 +197,16 @@ public class DetectionEngine extends Thread {
                 }
             }
         }
-        double mathcesRatio = (double) listOfGoodMatches.size() / knnMatches.size();
 
-        if (mathcesRatio > Constants.MATCHED_FEATURES_THRESHOLD) {
+
+        double mathcesRatio = (double) listOfGoodMatches.size() / knnMatches.size();
+        if (mathcesRatio > Constants.MATCHED_FEATURES_TRACKING_THRESHOLD) {
+
             MatOfDMatch goodMatches = new MatOfDMatch();
             goodMatches.fromList(listOfGoodMatches);
 
         //-- Draw matches
-        Mat imgMatches = objectInScene;
-//        Features2d.drawMatches(object, keypointsObject, objectInScene, keypointsScene, goodMatches, imgMatches, Scalar.all(-1),
+        //        Features2d.drawMatches(object, keypointsObject, objectInScene, keypointsScene, goodMatches, imgMatches, Scalar.all(-1),
 //                Scalar.all(-1), new MatOfByte(), Features2d.NOT_DRAW_SINGLE_POINTS);
 
             //-- Localize the object
@@ -208,8 +215,15 @@ public class DetectionEngine extends Thread {
             List<KeyPoint> listOfKeypointsObject = keypointsObject.toList();
             List<KeyPoint> listOfKeypointsScene = keypointsScene.toList();
 
+            List<KeyPoint> _listOfKeypointsObject = _keypointsObject.toList();
+
+
+//            Log.d(TAG, "knnMatches size: "+knnMatches.size()+" listOfKeypointsScene size: "+listOfKeypointsScene.size());
+            Log.d(TAG, "knnMatches size: "+knnMatches.size()+" _listOfKeypointsObject size: "+_listOfKeypointsObject.size());
+            Log.d(TAG, "knnMatches size: "+knnMatches.size()+" listOfKeypointsObject size: "+listOfKeypointsObject.size());
             for (int i = 0; i < listOfGoodMatches.size(); i++) {
                 //-- Get the keypoints from the good matches
+//                Log.d(TAG, "listOfGoodMatchesSize: "+listOfGoodMatches.size()+" listOfKeypointsObject size: "+listOfKeypointsObject.size()+" index: "+i+" listOfGoodMatches.get(i).queryIdx: "+listOfGoodMatches.get(i).queryIdx);
                 obj.add(listOfKeypointsObject.get(listOfGoodMatches.get(i).queryIdx).pt);
                 scene.add(listOfKeypointsScene.get(listOfGoodMatches.get(i).trainIdx).pt);
             }
@@ -243,13 +257,13 @@ public class DetectionEngine extends Thread {
             float[] sceneCornersData = new float[(int) (sceneCorners.total() * sceneCorners.channels())];
             sceneCorners.get(0, 0, sceneCornersData);
             //-- Draw lines between the corners (the mapped object in the scene - image_2 )
-            Imgproc.line(imgMatches, new Point(sceneCornersData[0], sceneCornersData[1]),
+            Imgproc.line(objectInScene, new Point(sceneCornersData[0], sceneCornersData[1]),
                     new Point(sceneCornersData[2], sceneCornersData[3]), new Scalar(0, 255, 0), 4);
-            Imgproc.line(imgMatches, new Point(sceneCornersData[2], sceneCornersData[3]),
+            Imgproc.line(objectInScene, new Point(sceneCornersData[2], sceneCornersData[3]),
                     new Point(sceneCornersData[4], sceneCornersData[5]), new Scalar(0, 255, 0), 4);
-            Imgproc.line(imgMatches, new Point(sceneCornersData[4], sceneCornersData[5]),
+            Imgproc.line(objectInScene, new Point(sceneCornersData[4], sceneCornersData[5]),
                     new Point(sceneCornersData[6], sceneCornersData[7]), new Scalar(0, 255, 0), 4);
-            Imgproc.line(imgMatches, new Point(sceneCornersData[6], sceneCornersData[7]),
+            Imgproc.line(objectInScene, new Point(sceneCornersData[6], sceneCornersData[7]),
                     new Point(sceneCornersData[0], sceneCornersData[1]), new Scalar(0, 255, 0), 4);
 
 
@@ -276,7 +290,7 @@ public class DetectionEngine extends Thread {
 //
             Log.d(TAG, "objects cols: "+object.cols()+" rows: "+object.rows());
             Log.d(TAG, "scene cols: "+objectInScene.cols()+" rows: "+objectInScene.rows());
-            Log.d(TAG, "matches cols: "+imgMatches.cols()+" rows: "+imgMatches.rows());
+            Log.d(TAG, "matches cols: "+ objectInScene.cols()+" rows: "+ objectInScene.rows());
             Log.d(TAG, "scene corners data: "+sceneCornersData[0]);
             Log.d(TAG, "scene corners data: "+sceneCornersData[1]);
             Log.d(TAG, "scene corners data: "+sceneCornersData[2]);
@@ -288,7 +302,7 @@ public class DetectionEngine extends Thread {
         }
     }
 
-    public void matchObjectsThread(Mat object, Mat objectInScene, Feature2D detector, MatchObjectsCallback callback){
-        new MatchObjectThread(object, objectInScene, detector, callback).start();
+    public void matchObjectsThread(Mat object, MatOfKeyPoint keypointsObject, Mat descriptorsObject, Mat objectInScene, Feature2D detector, MatchObjectsCallback callback){
+        new MatchObjectThread(object, keypointsObject, descriptorsObject, objectInScene, detector, callback).start();
     }
 }

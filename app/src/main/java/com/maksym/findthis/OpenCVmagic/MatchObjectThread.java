@@ -30,12 +30,16 @@ public class MatchObjectThread extends Thread {
     private Mat object, objectInScene;
     private Feature2D detector;
     private MatchObjectsCallback callback;
+    private MatOfKeyPoint keypointsObject;
+    private Mat descriptorsObject;
 
-    public MatchObjectThread(Mat object, Mat objectInScene, Feature2D detector, MatchObjectsCallback callback) {
+    public MatchObjectThread(Mat object, MatOfKeyPoint keypointsObject, Mat descriptorsObject, Mat objectInScene, Feature2D detector, MatchObjectsCallback callback) {
         this.object = object;
         this.objectInScene = objectInScene;
         this.detector = detector;
         this.callback = callback;
+        this.keypointsObject = keypointsObject;
+        this.descriptorsObject = descriptorsObject;
     }
 
     @Override
@@ -43,13 +47,13 @@ public class MatchObjectThread extends Thread {
         Log.d(TAG, "trying to match...");
 
         //-- Step 1: Detect the keypoints using detector, compute the descriptors
-        MatOfKeyPoint keypointsObject = new MatOfKeyPoint();
+//        MatOfKeyPoint keypointsObject = new MatOfKeyPoint();
         MatOfKeyPoint keypointsScene = new MatOfKeyPoint();
 
-        Mat descriptorsObject = new Mat();
+//        Mat descriptorsObject = new Mat();
         Mat descriptorsScene = new Mat();
 
-        detector.detectAndCompute(object, new Mat(), keypointsObject, descriptorsObject);
+//        detector.detectAndCompute(object, new Mat(), keypointsObject, descriptorsObject);
         detector.detectAndCompute(objectInScene, new Mat(), keypointsScene, descriptorsScene);
 
 

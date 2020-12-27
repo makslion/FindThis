@@ -5,18 +5,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Canvas;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.WindowManager;
-import android.widget.Toast;
 
 import com.maksym.findthis.Components.MatchObjectsCallback;
 import com.maksym.findthis.Database.ObjectEntity;
@@ -26,13 +21,13 @@ import com.maksym.findthis.OpenCVmagic.DetectionMagic;
 import com.maksym.findthis.Utils.Constants;
 
 import org.opencv.android.BaseLoaderCallback;
-import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Rect;
+import org.opencv.features2d.Feature2D;
 
 public class CameraSearch extends AppCompatActivity implements CustomCameraBridgeViewBase.CvCameraViewListener, MatchObjectsCallback {
 
@@ -66,8 +61,11 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
     private ObjectEntity objectEntity;
     private Bitmap objectPhoto;
     private boolean detectorOperating, objectReceived = false;
-    private Mat inputFrameWithObject;
+    private Mat inputFrameWithObject, objectMat;
     private DetectionEngine detectionEngine = DetectionEngine.getInstance();
+    private Feature2D extractor, descriptor, detector;
+    private MatOfKeyPoint keypointsFrame = new MatOfKeyPoint(), keypointsObject = new MatOfKeyPoint();
+    private Mat descriptorsFrame = new Mat(), descriptorsObject = new Mat();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -160,13 +158,14 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
         long start = System.nanoTime();
         if (!detectorOperating){
             detectorOperating = true;
-            Mat objectMat = new Mat();
-            Utils.bitmapToMat(objectPhoto, objectMat);
-            detectionEngine.matchObjectsThread(objectMat, inputFrame, detectionEngine.selectDetector(objectEntity.getDetectorType()), this);
+
+            // (Mat object, MatOfKeyPoint keypointsObject, Mat descriptorsObject, Mat objectInScene, Feature2D detector, MatchObjectsCallback callback)
+            detectionEngine.matchObjectsThread(objectMat, keypointsObject, descriptorsObject, inputFrame, detector, this);
         }
         if (objectReceived) {
 
-            detectionEngine.matchObjects(inputFrameWithObject, inputFrame, detectionEngine.selectTracker(Constants.ORB_DETECTOR_ID));
+            // Mat object, MatOfKeyPoint keypointsObject, Mat descriptorsObject, Mat objectInScene, Feature2D extractor, Feature2D descriptor
+            detectionEngine.matchObjects(inputFrameWithObject, keypointsFrame, descriptorsFrame, inputFrame, extractor, descriptor);
 
         }
 
@@ -195,6 +194,16 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
             Log.d(TAG, "retrieving object details");
             objectEntity = (ObjectEntity) intent.getSerializableExtra(Constants.EXTRA_OBJECT);
             objectPhoto = intent.getParcelableExtra(Constants.EXTRA_BITMAP);
+            objectMat = new Mat();
+            Utils.bitmapToMat(objectPhoto, objectMat);
+
+            // TODO get from settings
+            extractor = detectionEngine.selectTracker(Constants.FAST_DETECTOR_ID);
+            descriptor = detectionEngine.selectTracker(Constants.ORB_DETECTOR_ID);
+
+            detector = detectionEngine.selectDetector(objectEntity.getDetectorType());
+
+            precomputeObject();
         }
 
     }
@@ -224,9 +233,15 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
 
             // check if trying to crop out of bounds
             if (width + rightTopX > frame.cols())
-                width = frame.cols()-rightTopX;
+                width = frame.cols() - rightTopX;
             if (height + rightTopY > frame.rows() - rightTopY)
-                height = frame.rows()-rightTopY;
+                height = frame.rows() - rightTopY;
+
+            // if failed to calculate homography
+            if(width < 0)
+                width = 0;
+            if(height < 0)
+                height = 0;
 
             Log.d(TAG, "Frame dimensions: "+frame.cols()+"*"+frame.rows());
             Log.d(TAG, "r t x: "+rightTopX);
@@ -240,6 +255,8 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
             Rect roi = new Rect(rightTopX, rightTopY, width, height);
             inputFrameWithObject = new Mat(frame, roi);
 
+//            precomputeScene();
+
             objectReceived = true;
         }
         else {
@@ -247,5 +264,23 @@ public class CameraSearch extends AppCompatActivity implements CustomCameraBridg
             objectReceived = false;
         }
         detectorOperating = false;
+    }
+
+
+
+//    private void precomputeScene(){
+//        if (keypointsFrame != null)
+//            keypointsFrame.release();
+//
+//        if (descriptorsFrame != null)
+//            descriptorsFrame.release();
+//
+//        extractor.detect(inputFrameWithObject, keypointsFrame);
+//        descriptor.compute(inputFrameWithObject, keypointsFrame, descriptorsFrame);
+//    }
+
+
+    private void precomputeObject(){
+        detector.detectAndCompute(objectMat, new Mat(), keypointsObject, descriptorsObject);
     }
 }
